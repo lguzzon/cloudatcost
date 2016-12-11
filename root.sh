@@ -10,7 +10,7 @@ if [[ -z $NEWUSER ]]; then
 fi
 
 # remove default user
-deluser --remove-home user
+deluser --remove-home --remove-all-files user
 
 adduser --disabled-password --gecos "" $NEWUSER
 su -c 'mkdir ~/.ssh/; chmod 700 ~/.ssh/' $NEWUSER
