@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PATH=$PATH:/sbin
+
 chmod 600 ~/.ssh/authorized_keys
 
 sudo  timedatectl set-timezone Etc/UTC
@@ -21,9 +23,14 @@ echo "PasswordAuthentication no" | sudo tee -a /etc/ssh/sshd_config
 sudo sed -i 's/^ChallengeResponseAuthentication/#ChallengeResponseAuthentication/' /etc/ssh/sshd_config
 echo "ChallengeResponseAuthentication no" | sudo tee -a /etc/ssh/sshd_config
 
-# sudo service ssh restart
+# Remove potentially duplicated host key.
+sudo rm /etc/ssh/ssh_host_*
+# Regenerate host keys.
+sudo /usr/sbin/dpkg-reconfigure openssh-server
+# printf "dsa\necdsa\ned25519\nrsa\n" | xargs -L1 -I{} ssh-keygen -t {} -N \"\" -f /etc/ssh/ssh_host_{}_key
 
 # Firewall
+sudo apt-get install -y ufw
 sudo ufw --force enable
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
@@ -33,7 +40,9 @@ sudo ufw status
 # Increase hard ulimit
 echo "$USER hard nofile 9999" | sudo tee -a /etc/security/limits.conf
 
-curl -s https://getcaddy.com | bash
+if [[ ! -e /usr/local/bin/caddy ]]; then
+  curl -s https://getcaddy.com | bash
+fi
 
 # Need to login again
 ulimit -n 8192
@@ -44,7 +53,7 @@ sudo setcap 'cap_net_bind_service=+ep' $(which caddy)
 # Display IP addresses
 hostname -I
 
-sudo mkdir /www/
+sudo mkdir /www/ 2>/dev/null
 sudo chown $USER:$USER /www/
 
 printf '
@@ -52,3 +61,5 @@ ab.cd.com {
   gzip
   log access.log
 }' > Caddyfile
+
+sudo service ssh restart
